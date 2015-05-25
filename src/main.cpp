@@ -255,11 +255,51 @@ set_permissions(const std::string& root, const std::vector<std::string>& dirs)
 }
 
 static void
-copy_files(const std::vector<std::string>& files)
+copy_files(const std::string& root, const std::vector<std::string>& files)
 {
-	// XXX How to implement 'cp -p'
+	char buf[1024];
+
+	// XXX Preserve permission like 'cp -p'
 	for (const auto& file : files) {
-		std::cout << "[TODO] copy file: " << file << std::endl;
+		std::string src(std::string("/") + file);
+		std::string dst(root + "/" + file);
+		ssize_t len, lenw;
+
+		logi("Copy '%s' to '%s'\n", src.c_str(), dst.c_str());
+
+		int rd = open(src.c_str(), O_RDONLY);
+		if (rd == -1) {
+			std::perror("open");
+			std::exit(1);
+		}
+
+		int wd = open(dst.c_str(), O_WRONLY|O_CREAT|O_TRUNC, 0644);
+		if (wd == -1) {
+			std::perror("open");
+			std::exit(1);
+		}
+
+		while (true) {
+		retry:
+			len = read(rd, buf, sizeof(buf));
+			if (len < 0) {
+				if (errno == EINTR)
+					goto retry;
+
+				std::perror("read");
+				std::exit(1);
+			} else if (len == 0)
+				break;
+
+			lenw = write(wd, buf, len);
+			if (lenw < 0) {
+				std::perror("write");
+				std::exit(1);
+			}
+		}
+
+		close(rd);
+		close(wd);
 	}
 }
 
@@ -512,7 +552,7 @@ int main(int argc, char *argv[])
 	create_directories(root, temp_dirs);
 	set_permissions(root, temp_dirs);
 
-	copy_files(default_copied_files());
+	copy_files(root, default_copied_files());
 
 	bind_directories(root, default_bind_directories());
 
