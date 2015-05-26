@@ -255,6 +255,29 @@ set_permissions(const std::string& root, const std::vector<std::string>& dirs)
 }
 
 static void
+copy_permissions(const std::string& src, const std::string& dst)
+{
+	struct stat st;
+	int ret = stat(src.c_str(), &st);
+	if (ret != 0) {
+		std::perror("stat");
+		std::exit(1);
+	}
+
+	ret = chmod(dst.c_str(), st.st_mode);
+	if (ret != 0) {
+		std::perror("stat");
+		std::exit(1);
+	}
+
+	ret = chown(dst.c_str(), st.st_uid, st.st_gid);
+	if (ret != 0) {
+		std::perror("stat");
+		std::exit(1);
+	}
+}
+
+static void
 copy_files(const std::string& root, const std::vector<std::string>& files)
 {
 	char buf[1024];
@@ -298,6 +321,7 @@ copy_files(const std::string& root, const std::vector<std::string>& files)
 			}
 		}
 
+		copy_permissions(src, dst);
 		close(rd);
 		close(wd);
 	}
