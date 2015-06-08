@@ -119,6 +119,7 @@ default_copied_files()
 	files.push_back("etc/group");
 	files.push_back("etc/passwd");
 	files.push_back("etc/resolv.conf");
+	files.push_back("etc/hosts");
 
 	return files;
 }
