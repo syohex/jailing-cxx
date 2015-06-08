@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mount.h>
+#include <linux/capability.h>
 #include <sys/prctl.h>
 #include <unistd.h>
 #include <getopt.h>
@@ -481,10 +482,31 @@ get_last_cap()
 	return std::stoi(buf);
 }
 
+static const int KEEP_CAPS[] = {
+	CAP_SETGID,
+	CAP_SETUID,
+	CAP_NET_BIND_SERVICE,
+};
+
+static bool
+is_kept_capability(int cap)
+{
+	constexpr size_t CAPS = sizeof(KEEP_CAPS) / sizeof(int);
+	for (size_t i = 0; i < CAPS; ++i) {
+		if (cap == KEEP_CAPS[i])
+			return true;
+	}
+
+	return false;
+}
+
 static void
 drop_capabilities(int last_cap)
 {
 	for (int i = 0; i < last_cap; ++i) {
+		if (is_kept_capability(i))
+			continue;
+
 		if (prctl(PR_CAPBSET_READ, i, 0, 0, 0) == -1)
 			continue;
 
